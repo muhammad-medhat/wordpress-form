@@ -3,31 +3,38 @@
  *
  * @wordpress-plugin
  * Plugin Name:       MDForms
- * Plugin URI:        https://example.com/plugin-name
+ * Plugin URI:        https://mdstore.com/md-forms
  * Description:       Description of the plugin.
  * Version:           1.0.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Muhammad  Medhat
- * Author URI:        https://example.com
- * Text Domain:       plugin-slug
+ * Author URI:        https://mdstore.com
+ * Text Domain:       mdforms
  * License:           GPL v2 or later
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Update URI:        https://example.com/my-plugin/
  */
 
-
-require_once( '__DIR__' .'/inc.class.PHPForms.php' );
+// echo 'dir = ' .__DIR__;
+require_once( __DIR__ .'/inc/class.PHPForms.php' );
+require_once( __DIR__ .'/admin/class.MDFormsAdmin.php' );
 
 // Main Plugin Code
 
 if(! class_exists(  'MDForms' )){
+      $sh='mdforms';
 
   class MDForms{
   
-    public __construct(){}
+    public function __construct(){
+        add_action( 'wp_enquque_scripts', array($this, 'enqueue_scripts') );
+        add_shortcode($sh, array($this, 'form'));
+    }
       
-    public function enqueue_scripts(){}
+    public function enqueue_scripts(){
+        wp_enqueue_style( $sh, plugins_url( '/public/css/style.css', __FILE__ ), array(), 0.001 );
+    }
 
     public function form( $atts ){
         global $post;
@@ -84,7 +91,7 @@ if(! class_exists(  'MDForms' )){
         ob_start();
         $status = filter_input(INPUT_GET, 'status', FILTER_VALIDATE_INT);
         if($status == 1){
-            printf('<div class="message success">%s</div>', __('great', 'mdforms'));        
+            printf('<div class="message success">%s</div>', __('great', $sh));        
         }
 
         // build the form
@@ -94,7 +101,7 @@ if(! class_exists(  'MDForms' )){
     }
 
     public function form_handler(){}
-
-  
+}
 }
 $mdForms = new MDForms; 
+// $mdForms = new MDForms(); 
