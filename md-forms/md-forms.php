@@ -24,84 +24,112 @@ require_once( __DIR__ .'/admin/class.MDFormsAdmin.php' );
 
 if(! class_exists(  'MDForms' )){
       $sh='mdforms';
+      $form_submit = 'submit_md_form' ;
 
-  class MDForms{
-  
-    public function __construct(){
-        add_action( 'wp_enquque_scripts', array($this, 'enqueue_scripts') );
-        add_shortcode($sh, array($this, 'form'));
-    }
-      
-    public function enqueue_scripts(){
-        wp_enqueue_style( $sh, plugins_url( '/public/css/style.css', __FILE__ ), array(), 0.001 );
-    }
-
-    public function form( $atts ){
-        global $post;
-        $atts = shortcode_atts(
-            array(
-                'add_honeypot'=>false
-            ), $atts, 'mdform');
-
-        //1) Instantiate the class
-            $form = new PHPFormBuilder();
-
-        //2) Change any form attributes, if desired
-
-            $form->set_att( 'action', esc_url ( admin_url( 'admin-post.php') ) );
-            $form->set_att( 'add_honeypot', $atts['add_honeypot'] );
-
-        // 3) Add inputs, in order you want to see them
+    class MDForms{
+    
+        public function __construct(){
+            add_action( 'wp_enquque_scripts', array($this, 'enqueue_scripts') );
+            add_shortcode($sh, array($this, 'form'));   
+            add_action( 'wp_post_nopriv_md_action_form', array( $this, 'form_handler' ) );
+            add_action( 'wp_post_md_action_form', array( $this, 'form_handler' ) );
+        }
         
-
-        //hidden fields
-        $form->add_input('action', array(
-            'type'=>'hidden', 
-            'value' =>'mdform'
-        ), 'action');
-        $form->add_input('wp_nonce', array(
-            'type'=>'hidden', 
-            'value' =>wp_create_nonce( 'submit_mdform')
-        ), 'wp_nonce');
-        $form->add_input('redirect_id', array(
-            'type'=>'hidden', 
-            'value' => $post->ID
-        ), 'redirect_id');
-
-
-        //input fields
-        $form->add_input('Name', array(
-            'type'=>'text', 
-            'placeholder'=>'your name', 
-            'required'=>true
-        ), 'name'); 
-        $form->add_input('Phone', array(
-            'type'=>'number', 
-            'placeholder'=>'your phone', 
-            'required'=>true
-        ), 'phone');
-        $form->add_input('Phone 2', array(
-            'type'=>'number', 
-            'placeholder'=>'your phone', 
-            'required'=>false
-        ), 'phone2');
-
-
-        //shortcode ahould not output directly
-        ob_start();
-        $status = filter_input(INPUT_GET, 'status', FILTER_VALIDATE_INT);
-        if($status == 1){
-            printf('<div class="message success">%s</div>', __('great', $sh));        
+        public function enqueue_scripts(){
+            wp_enqueue_style( $sh, plugins_url( '/public/css/style.css', __FILE__ ), array(), 0.001 );
         }
 
-        // build the form
-        $form->build_form();
+        public function form( $atts ){
+            global $post;
+            $atts = shortcode_atts(
+                array(
+                    'add_honeypot'=>false
+                ), $atts, 'mdform');
 
-        return ob_get_clean();
+            //1) Instantiate the class
+                $form = new PHPFormBuilder();
+
+            //2) Change any form attributes, if desired
+
+                $form->set_att( 'action', esc_url ( admin_url( 'admin-post.php') ) );
+                $form->set_att( 'add_honeypot', $atts['add_honeypot'] );
+
+            // 3) Add inputs, in order you want to see them
+            
+
+            //hidden fields
+            $form->add_input('action', array(
+                'type'=>'hidden', 
+                'value' =>'md_action_form'
+            ), 'action');
+            $form->add_input('wp_nonce', array(
+                'type'=>'hidden', 
+                'value' =>wp_create_nonce( $form_submit)
+            ), 'wp_nonce');
+            $form->add_input('redirect_id', array(
+                'type'=>'hidden', 
+                'value' => $post->ID
+            ), 'redirect_id');
+
+
+            //input fields
+            $form->add_input('Name', array(
+                'type'=>'text', 
+                'placeholder'=>'your name', 
+                'required'=>true
+            ), 'name'); 
+            $form->add_input('Phone', array(
+                'type'=>'number', 
+                'placeholder'=>'your phone', 
+                'required'=>true
+            ), 'phone');
+            $form->add_input('Phone 2', array(
+                'type'=>'number', 
+                'placeholder'=>'your phone', 
+                'required'=>false
+            ), 'phone2');
+
+
+            //shortcode ahould not output directly
+            ob_start();
+            $status = filter_input(INPUT_GET, 'status', FILTER_VALIDATE_INT);
+            if($status == 1){
+                printf('<div class="message success">%s</div>', __('great', $sh));        
+            }
+
+            // build the form
+            $form->build_form();
+
+            return ob_get_clean();
+        }
+
+        public function form_handler(){
+            $post = $_POST;
+
+            if( ! isset( $post['wp_nonce'] || wp_verify_nonce( $post['wp_nonce'], $form_submit ))){
+                wp_die( 'Error submitting form', title, args )
+            }
+            
+            // check required fields
+            //.................
+            //insert the post
+            $postarr = array(
+                'post_author'=>1, 
+                'post_title'=>sanitize_text_field( $post['name'] ), 
+                'post_type'=> $sh, 
+                'post_status'=>'publish',
+
+                'meta_input'=>arrar(
+                    'phone' => sanitize_text_field( $post['phone'] ), 
+                    'address' => sanitize_text_field( $post['addtrss'] ), 
+                )
+            );
+            $post_id = _insert_post( $postarr, true );
+            if( is_wp_error($post_id, true ){
+                wp_die( 'errrrrrr' );
+            }
+        }
     }
-
-    public function form_handler(){}
-}
 }
 $mdForms = new MDForms; 
 // $mdForms = new MDForms(); 
